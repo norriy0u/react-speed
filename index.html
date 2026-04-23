@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ReactSpeed - Test Your Reflexes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+:root{--bg:#08080f;--neon:#00ff88;--neon2:#00ccff;--danger:#ff3366;--warn:#ffaa00;--card:rgba(12,12,20,.9);--font-d:'Orbitron',monospace;--font-b:'Rajdhani',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:var(--font-b);background:var(--bg);color:#ddd;user-select:none}
+canvas#bg{position:fixed;inset:0;z-index:0}
+.screen{position:fixed;inset:0;display:none;justify-content:center;align-items:center;z-index:10;padding:20px}
+.screen.active{display:flex}
+.card{background:var(--card);backdrop-filter:blur(20px);border:1px solid rgba(0,255,136,.12);border-radius:16px;padding:36px 40px;text-align:center;max-width:480px;width:90%;animation:popIn .5s ease}
+@keyframes popIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+.badge{display:inline-block;padding:5px 14px;background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.2);border-radius:20px;font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--neon);margin-bottom:16px;font-family:var(--font-d)}
+h1{font-family:var(--font-d);font-size:2.4rem;font-weight:900;margin-bottom:8px}
+h1 span{color:var(--neon);text-shadow:0 0 10px var(--neon)}
+.sub{color:#555;font-size:.9rem;margin-bottom:24px;line-height:1.5}
+.hint{font-size:.65rem;color:#444;margin-top:12px}
+.glow-btn{padding:14px 40px;background:transparent;border:2px solid var(--neon);color:var(--neon);font-family:var(--font-d);font-size:.9rem;font-weight:700;letter-spacing:3px;border-radius:8px;cursor:pointer;transition:all .3s}
+.glow-btn:hover{background:var(--neon);color:var(--bg);box-shadow:0 0 25px rgba(0,255,136,.3);transform:translateY(-2px)}
+/* Game zone */
+#game-screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center}
+.game-zone{width:90%;max-width:500px;height:300px;border-radius:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .3s,border-color .3s;z-index:10;position:relative;border:2px solid rgba(255,255,255,.05)}
+.game-zone.waiting{background:rgba(255,51,102,.08);border-color:rgba(255,51,102,.2)}
+.game-zone.ready{background:rgba(0,255,136,.08);border-color:rgba(0,255,136,.3);animation:pulseGreen 1s infinite}
+@keyframes pulseGreen{0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,.2)}50%{box-shadow:0 0 0 20px rgba(0,255,136,0)}}
+.game-zone.early{background:rgba(255,170,0,.08);border-color:rgba(255,170,0,.2)}
+.game-zone.result{background:rgba(0,204,255,.05);border-color:rgba(0,204,255,.15)}
+.zone-text{font-family:var(--font-d);font-size:1.4rem;font-weight:700;text-align:center;padding:20px}
+.zone-text.big{font-size:3rem}
+.zone-text .ms{color:var(--neon);text-shadow:0 0 15px rgba(0,255,136,.5)}
+.zone-text .unit{font-size:1rem;color:#555;margin-left:4px}
+.round-indicator{display:flex;gap:8px;margin-bottom:20px;z-index:10}
+.round-dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);transition:all .3s}
+.round-dot.done{background:var(--neon);border-color:var(--neon);box-shadow:0 0 8px rgba(0,255,136,.4)}
+.round-dot.current{border-color:var(--neon2);box-shadow:0 0 8px rgba(0,204,255,.3)}
+/* Results */
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+.r-item{display:flex;flex-direction:column;align-items:center;padding:14px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);border-radius:10px}
+.r-val{font-family:var(--font-d);font-size:1.6rem;font-weight:700;color:var(--neon)}
+.r-label{font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:#555;margin-top:4px}
+.rank{padding:12px 20px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.12);border-radius:10px;margin-bottom:20px;font-family:var(--font-d);font-size:.85rem;letter-spacing:3px;color:var(--neon)}
+.history{display:flex;gap:8px;justify-content:center;margin:16px 0;flex-wrap:wrap}
+.h-item{padding:6px 10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);border-radius:6px;font-family:var(--font-d);font-size:.7rem}
+.h-item.fast{color:var(--neon)}.h-item.mid{color:var(--neon2)}.h-item.slow{color:var(--warn)}.h-item.fail{color:var(--danger)}
+@media(max-width:600px){h1{font-size:1.6rem}.card{padding:24px 20px}.game-zone{height:240px}.zone-text{font-size:1.1rem}.zone-text.big{font-size:2.2rem}}
+    </style>
+</head>
+<body>
+    <audio id="bg-audio" loop preload="none">
+        <source src="https://cdn.pixabay.com/audio/2023/07/19/audio_e4384dae0b.mp3" type="audio/mpeg">
+    </audio>
+    <canvas id="bg"></canvas>
+
+    <div id="intro-screen" class="screen active">
+        <div class="card">
+            <div class="badge">VishwaNova 2026 • Games</div>
+            <h1>React<span>Speed</span></h1>
+            <p class="sub">How fast are your reflexes? Test your reaction time across 5 rounds. Wait for green, then tap as fast as you can!</p>
+            <button id="start-btn" class="glow-btn">START TEST</button>
+            <p class="hint">🎵 Audio included • Best of 5 rounds</p>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div class="round-indicator" id="round-dots"></div>
+        <div class="game-zone" id="game-zone">
+            <div class="zone-text" id="zone-text">TAP TO BEGIN</div>
+        </div>
+    </div>
+
+    <div id="results-screen" class="screen">
+        <div class="card">
+            <h2 style="font-family:var(--font-d);font-size:1.2rem;letter-spacing:3px;color:var(--neon2);margin-bottom:4px">TEST COMPLETE</h2>
+            <div class="results-grid">
+                <div class="r-item"><span class="r-val" id="r-avg">0</span><span class="r-label">Avg (ms)</span></div>
+                <div class="r-item"><span class="r-val" id="r-best">0</span><span class="r-label">Best (ms)</span></div>
+            </div>
+            <div class="history" id="history"></div>
+            <div class="rank" id="rank">⚡ CALCULATING...</div>
+            <button id="retry-btn" class="glow-btn">TRY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+const canvas=document.getElementById('bg'),ctx=canvas.getContext('2d');
+canvas.width=innerWidth;canvas.height=innerHeight;
+const dots=[];for(let i=0;i<30;i++)dots.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5});
+function drawBg(){ctx.fillStyle='rgba(8,8,15,0.07)';ctx.fillRect(0,0,canvas.width,canvas.height);dots.forEach(d=>{d.x+=d.vx;d.y+=d.vy;if(d.x<0||d.x>canvas.width)d.vx*=-1;if(d.y<0||d.y>canvas.height)d.vy*=-1;ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,Math.PI*2);ctx.fillStyle='rgba(0,255,136,0.15)';ctx.fill()});requestAnimationFrame(drawBg)}
+drawBg();addEventListener('resize',()=>{canvas.width=innerWidth;canvas.height=innerHeight});
+
+const bgAudio=document.getElementById('bg-audio');
+const ROUNDS=5;
+let round=0,times=[],state='idle',timeout=null,startTime=0;
+const zone=document.getElementById('game-zone'),zoneText=document.getElementById('zone-text');
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+function renderDots(){
+    const c=document.getElementById('round-dots');c.innerHTML='';
+    for(let i=0;i<ROUNDS;i++){const d=document.createElement('div');d.className='round-dot';if(i<round)d.classList.add('done');if(i===round)d.classList.add('current');c.appendChild(d)}
+}
+
+function startRound(){
+    state='waiting';
+    zone.className='game-zone waiting';
+    zoneText.innerHTML='Wait for <span style="color:#00ff88">GREEN</span>...';
+    zoneText.className='zone-text';
+    const delay=1500+Math.random()*3000;
+    timeout=setTimeout(()=>{state='ready';zone.className='game-zone ready';zoneText.textContent='TAP NOW!';startTime=performance.now()},delay);
+}
+
+zone.addEventListener('click',()=>{
+    if(state==='idle'){round=0;times=[];renderDots();startRound();return}
+    if(state==='waiting'){clearTimeout(timeout);state='early';zone.className='game-zone early';zoneText.textContent='Too early! Tap to retry round.';return}
+    if(state==='early'){startRound();return}
+    if(state==='ready'){
+        const t=Math.round(performance.now()-startTime);
+        times.push(t);
+        state='result';
+        zone.className='game-zone result';
+        zoneText.innerHTML=`<span class="ms">${t}</span><span class="unit">ms</span>`;
+        zoneText.className='zone-text big';
+        round++;
+        renderDots();
+        setTimeout(()=>{if(round>=ROUNDS)showResults();else startRound()},1200);
+    }
+});
+
+function showResults(){
+    showScreen('results-screen');
+    const valid=times.filter(t=>t>0);
+    const avg=Math.round(valid.reduce((a,b)=>a+b,0)/valid.length);
+    const best=Math.min(...valid);
+    document.getElementById('r-avg').textContent=avg;
+    document.getElementById('r-best').textContent=best;
+    const hist=document.getElementById('history');hist.innerHTML='';
+    times.forEach((t,i)=>{const el=document.createElement('div');el.className='h-item '+(t<200?'fast':t<300?'mid':t<500?'slow':'fail');el.textContent=`R${i+1}: ${t}ms`;hist.appendChild(el)});
+    let rank='🐌 Sleepy Turtle';
+    if(avg<350)rank='🏃 Quick Runner';if(avg<250)rank='⚡ Lightning Fast';if(avg<200)rank='🔥 Superhuman';if(avg<150)rank='🧠 Neural Speed';
+    document.getElementById('rank').textContent=rank;
+}
+
+document.getElementById('start-btn').addEventListener('click',()=>{showScreen('game-screen');round=0;times=[];renderDots();state='idle';zoneText.textContent='TAP TO BEGIN';zone.className='game-zone';bgAudio.volume=.3;bgAudio.play().catch(()=>{})});
+document.getElementById('retry-btn').addEventListener('click',()=>{showScreen('game-screen');round=0;times=[];renderDots();state='idle';zoneText.textContent='TAP TO BEGIN';zone.className='game-zone'});
+    </script>
+</body>
+</html>
